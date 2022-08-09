@@ -22,7 +22,26 @@ also,
     - focus toggle/arranger window (o)
     - focus track header (t)
     - rename track header (Ctrl-r)
-- You must start from a Bitwig project with no tracks open.
+
+## Usage:
+
+1. Have a Bitwig project open, with no tracks.
+
+2. Run `./virus.fish`
+```
+Usage:
+	./virus.fish
+ 		This asks the program to process banks C through H entirely.
+
+ 	./virus.fish 0 0 75 1 1 1
+ 		This asks the program to process (i.e. if you want to resume your progress):
+			Bank C not at all
+			Bank D not at all
+			Bank E 75-128
+			Bank F 1-128
+			Bank G 1-128
+			Bank H 1-128
+```
 
 ---
 
