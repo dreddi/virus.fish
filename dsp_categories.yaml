@@ -1,0 +1,51 @@
+"None":
+  category: None
+  tags: []
+"Lead":
+  category: Lead
+  tags: []
+"Bass":
+  category: Bass
+  tags: []
+"Pad":
+  category: Pad
+  tags: []
+"Decay":
+  category: None
+  tags: []
+"Pluck":
+  category: Plucks
+  tags: []
+"Acid":
+  category: None
+  tags: [ acid ]
+"Classic":
+  category: None
+  tags: [ classic ]
+"Arpeggiator":
+  category: None
+  tags: [ seq ]
+"Effects":
+  category: None
+  tags: [ effect ]
+"Drums":
+  category: Drums
+  tags: [ drums ]
+"Percussion":
+  category:  Percussion
+  tags: [ percussive ]
+"Input":
+  category: FX
+  tags: [ processor ]
+"Vocoder":
+  category: FX
+  tags: [ processor, vocoder ]
+"Favourite 1":
+  category: None
+  tags: [virusfav]
+"Favourite 2":
+  category: None
+  tags: [virusfav]
+"Favourite 3":
+  category: None
+  tags: [virusfav]
