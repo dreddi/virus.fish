@@ -8,7 +8,7 @@ This is a fish shell script which automates the mouse and key presses needed to 
 
 
 ## Prerequisites:
-- an X11 environment
+- an X11 environment (tested on Ubuntu 20.04)
 - sudo apt install tesseract-ocr
 - sudo apt install xdotool
 - Bitwig Studio (Tested on 4.3)
