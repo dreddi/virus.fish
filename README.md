@@ -12,7 +12,7 @@ This is a fish shell script which automates the mouse and key presses needed to 
 - sudo apt install tesseract-ocr
 - sudo apt install xdotool
 - Bitwig Studio (Tested on 4.3)
-- DSP56300Emu (Tested on 1.2.20, Hoverland skin, Virus C rom)
+- DSP56300Emu (Tested on 1.2.20, VST2, Hoverland skin, Virus C rom)
 
 also, 
 - You have no Bitwig presets for DSP56300Emu already (because, we do not handle the dialog where Bitwig asks if you want to replace an existing preset)
