@@ -16,7 +16,7 @@
 # - sudo apt install tesseract-ocr
 # - sudo apt install xdotool
 # - Bitwig Studio (Tested on 4.3)
-# - DSP56300Emu (Tested on 1.2.20, Hoverland skin, Virus C rom)
+# - DSP56300Emu (Tested on 1.2.20, VST2, Hoverland skin, Virus C rom)
 # also, 
 # - You have no Bitwig presets for DSP56300Emu already (because, we do not handle the dialog where Bitwig asks if you want to replace an existing preset)
 # - In Bitwig, the shortcut for 'Save to Library' must be set to Numpad *
@@ -140,20 +140,33 @@ end
 
 function copy_and_map_the_category_names
 	# Screenshot the Category 1 dropdown box and pipe it through tesseract OCR to get the category text
-	: (import test.png &)
+
+	# locate the screen coordinates of the dropbox
 	sleep 0.024
+	set windowid ($PLUGIN getwindowgeometry --shell | grep WINDOW= | grep -o "[[:digit:]]*")
+	set x ($PLUGIN getwindowgeometry --shell | grep X= | grep -o "[[:digit:]]*")
+    set y ($PLUGIN getwindowgeometry --shell | grep Y= | grep -o "[[:digit:]]*")
+	# echo $windowid, $x, $y
+	set width (math $EMU_CAT1XY[3]-$EMU_CAT1XY[1])
+    set height (math $EMU_CAT1XY[4]-$EMU_CAT1XY[2])
+
+	import -window $windowid -crop $width"x"$height+$EMU_CAT1XY[1]+$EMU_CAT1XY[2]! test.png
+
 	# tesseract succeeds if you capture a few pixels taller and wider than the red box in which the text sits
-	$PLUGIN mousemove --sync --window %1 $EMU_CAT1XY[1] $EMU_CAT1XY[2] mousedown 1 mousemove --window %1 $EMU_CAT1XY[3] $EMU_CAT1XY[4] mouseup 1
 	sleep 0.15
+
 	set cat1 (tesseract test.png - --dpi 72)
 	if test -z $cat1:
 		set cat1 "None"
 	end
+	
+	sleep 0.024
 
 	# Category 2
-	: (import test.png &)
-	sleep 0.024
-	$PLUGIN mousemove --sync --window %1 $EMU_CAT2XY[1] $EMU_CAT2XY[2] mousedown 1 mousemove --window %1 $EMU_CAT2XY[3] $EMU_CAT2XY[4] mouseup 1
+	set width (math $EMU_CAT2XY[3]-$EMU_CAT2XY[1])
+    set height (math $EMU_CAT2XY[4]-$EMU_CAT2XY[2])
+	import -window $windowid -crop $width"x"$height+$EMU_CAT2XY[1]+$EMU_CAT2XY[2]! test.png
+
 	sleep 0.15
 	set cat2 (tesseract test.png - --dpi 72)
 	if test -z $cat2:
@@ -271,15 +284,16 @@ xdotool key "ctrl+t"
 # set the track name 
 xdotool type t
 xdotool key "ctrl+r"; sleep 0.1
-xdotool type "$TRACK_TITLE"
+xdotool type --delay 30 "$TRACK_TITLE"
 xdotool key Return
 
 # open the instrument via the browser
 xdotool type db; sleep 0.1
-xdotool type --delay 30 "DSP56300Emu"
+xdotool type --delay 30 "Dev56300Emu"
 sleep 0.1
 xdotool key --delay 1000 Down Return
 
+sleep 1 # wait for the VST to load
 
 # go to the Arp | Settings page
 $PLUGIN mousemove --sync --window %1 $EMU_SETTINGSXY[1] $EMU_SETTINGSXY[2] click 1
