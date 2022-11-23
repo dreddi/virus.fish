@@ -13,19 +13,19 @@
 #
 # Prerequisites:
 # - an X11 environment
-# - sudo apt install tesseract-ocr
-# - sudo apt install xdotool
+# - sudo apt install tesseract-ocr xdotool
 # - Bitwig Studio (Tested on 4.3)
 # - DSP56300Emu (Tested on 1.2.20, VST2, Hoverland skin, Virus C rom)
 # also, 
 # - You have no Bitwig presets for DSP56300Emu already (because, we do not handle the dialog where Bitwig asks if you want to replace an existing preset)
-# - In Bitwig, the shortcut for 'Save to Library' must be set to Numpad *
+# - A custom Bitwig shortcut must be set, the shortcut for 'Save to Library' must be set to Numpad *
 # - The default shortcuts must be set for 
-#		focus/toggle device panel (d)
-#		focus toggle/arranger window (o)
-# 		focus track header (t)
-#		rename track header (Ctrl-r)
-# - You must start from a Bitwig project with no tracks open.
+#		Focus/toggle device panel (d)
+#		Focus toggle/arranger window (o)
+# 		Focus track header (t)
+#		Rename track header (Ctrl-r)
+#		Selection > Select last item (End)
+#		Editing > Delete (Delete)
 #
 #
 # Remember to like and subscribe
@@ -60,14 +60,17 @@ end
 
 
 #
-# Magic numbers (All generated from a 4k display with DSP56300Emu scaled to 150%)
+# Magic numbers (All generated from a 4k display with DSP56300Emu scaled to 150% (2067x1200 editor window) )
 #
+
+set EMU_BASEWH 2067 1200 # The width and height of the editor window used to generate the below coordinates
 set EMU_BROWSERXY 290 270 # XY coordinate for the 'factory preset browser' UI target (i.e. where clicking opens the Bank A-E dropdown)
 set EMU_TITLEXY 750 95 # the program title UI target (i.e. where double clicking allows you to edit the title)
 set EMU_SETTINGSXY 1405 180 # the 'Arp | Settings' tab UI target (i.e. where clicking takes you to the page displaying the Category 1 and Category 2 dropdowns)
 
 # bounding box coordinates for the Category 1 dropdown (for optical character recognition purposes): 
-# top left X, top left Y, bottom right X, bottom right Y
+## Programmer's note: tesseract succeeds if you capture a few pixels taller and wider than the red box in which the text sits
+## top left X, top left Y, bottom right X, bottom right Y
 set EMU_CAT1XY 1705 810 1830 840
 set EMU_CAT2XY 1862 810 1977 840 # bounding box for Category 2
 
@@ -99,8 +102,9 @@ set presetname ""
 #
 function select_the_program_from_the_list 
 	# Click on the DSP56300Emu 'factory preset browser' button
-	$PLUGIN mousemove --window %1 $EMU_BROWSERXY[1] $EMU_BROWSERXY[2]
+	$PLUGIN mousemove --window %1 $EDITOR_BROWSERXY[1] $EDITOR_BROWSERXY[2]
 	xdotool click 1
+
 
 
 	# Scroll to the desired bank
@@ -110,6 +114,7 @@ function select_the_program_from_the_list
 		xdotool key Down
 	end
 	
+
 
 	# Scroll to the desired program
 	sleep 0.1
@@ -126,52 +131,65 @@ end
 
 
 function copy_the_program_name
-	# Click on the program name centre-top
-	$PLUGIN --sync mousemove --window %1 $EMU_TITLEXY[1] $EMU_TITLEXY[2] click 1 click 1
+	xsel -bc # clear the X CLIPBOARD selection before we copy the program name
+
+
+
+	# Click on the program name at the centre-top of the editor
+	$PLUGIN --sync mousemove --window %1 $EDITOR_TITLEXY[1] $EDITOR_TITLEXY[2] click 1 click 1
+
+
 
 	# Ctrl-a Ctrl-c
 	xdotool key --delay 100 "ctrl+a" "ctrl+c"
 	xdotool key --delay 100 Escape
 
+
+
 	set presetname (xsel -ob 2> /dev/null | head -n 1 | xargs -0 | tr "/\?<>:|*" " " | tr -d \x7f | string trim )
+	# echo PRESETNAME: $presetname
 end
 
 
 
 function copy_and_map_the_category_names
 	# Screenshot the Category 1 dropdown box and pipe it through tesseract OCR to get the category text
-
-	# locate the screen coordinates of the dropbox
+	## locate the screen coordinates of the dropbox
 	sleep 0.024
 	set windowid ($PLUGIN getwindowgeometry --shell | grep WINDOW= | grep -o "[[:digit:]]*")
 	set x ($PLUGIN getwindowgeometry --shell | grep X= | grep -o "[[:digit:]]*")
     set y ($PLUGIN getwindowgeometry --shell | grep Y= | grep -o "[[:digit:]]*")
-	# echo $windowid, $x, $y
-	set width (math $EMU_CAT1XY[3]-$EMU_CAT1XY[1])
-    set height (math $EMU_CAT1XY[4]-$EMU_CAT1XY[2])
 
-	import -window $windowid -crop $width"x"$height+$EMU_CAT1XY[1]+$EMU_CAT1XY[2]! test.png
+	set width (math "$EDITOR_CAT1XY[3]-$EDITOR_CAT1XY[1]")
+    set height (math "$EDITOR_CAT1XY[4]-$EDITOR_CAT1XY[2]")
 
-	# tesseract succeeds if you capture a few pixels taller and wider than the red box in which the text sits
+	import -window $windowid -crop $width"x"$height+$EDITOR_CAT1XY[1]+$EDITOR_CAT1XY[2]! test.png
 	sleep 0.15
-
-	set cat1 (tesseract test.png - --dpi 72)
+	set cat1 (tesseract test.png - --dpi 72 2>/dev/null)
+	# echo CAT1: $cat1
 	if test -z $cat1:
 		set cat1 "None"
 	end
 	
-	sleep 0.024
 
-	# Category 2
-	set width (math $EMU_CAT2XY[3]-$EMU_CAT2XY[1])
-    set height (math $EMU_CAT2XY[4]-$EMU_CAT2XY[2])
-	import -window $windowid -crop $width"x"$height+$EMU_CAT2XY[1]+$EMU_CAT2XY[2]! test.png
+
+
+
+	sleep 0.024
+	# Screenshot and OCR category 2
+	set width (math "$EDITOR_CAT2XY[3]-$EDITOR_CAT2XY[1]")
+    set height (math "$EDITOR_CAT2XY[4]-$EDITOR_CAT2XY[2]")
+	import -window $windowid -crop $width"x"$height+$EDITOR_CAT2XY[1]+$EDITOR_CAT2XY[2]! test.png
 
 	sleep 0.15
-	set cat2 (tesseract test.png - --dpi 72)
+	set cat2 (tesseract test.png - --dpi 72 2>/dev/null)
+	# echo CAT2: $cat2
 	if test -z $cat2:
 		set cat2 "None"
 	end
+
+
+
 
 
 	#
@@ -213,13 +231,15 @@ end
 # argv[2]: the number of the selected bank program (1 -> 128)
 #
 function save_bwpreset
-	# Return to Bitwig and paste the program name into a new Bitwig preset
+	# Find the Bitwig window and paste the program name into a new Bitwig preset
 	sleep 0.1
 	$BITWIG mousemove --sync --window %1 10 10 click 1
 	xdotool type --delay 100 od
 	xdotool key KP_Multiply # Use our 'Save to Library' Bitwig shortcut
 
-	# Program name
+
+
+	# Enter the program name
 	## Bank C Program 125 (Low) name clashes with Bank F Program 128 (Low)
 	if test "$argv[1]" = "C" -a "$argv[2]" = "125"
 		set presetname "$presetname (Bank C)"
@@ -229,13 +249,16 @@ function save_bwpreset
 
 	sleep 0.1
 	xdotool key --delay 100 "ctrl+a" type --clearmodifiers --delay 200 -- "$presetname"
-	#
 
-	# Creator
+
+
+	# Enter the creator
 	sleep 0.1
 	xdotool key Tab type --clearmodifiers --delay 110 Access
 
-	# Category
+
+
+	# Select the category
 	set dropdown_len (wc -l bwpreset_category_dropdown.txt | cut -f 1 -d ' ')
 	xdotool key Tab
 	## Reposition the selected entry to the top of the list (because the dropdown will save it's current position between new bwpresets for the same instrument)
@@ -250,7 +273,9 @@ function save_bwpreset
 		xdotool key Down
 	end
 
-	# Tags
+
+
+	# Enter the tags
 	if test -n "$tags"
 		xdotool key Tab
 		xdotool key BackSpace BackSpace BackSpace BackSpace BackSpace
@@ -261,8 +286,12 @@ function save_bwpreset
 		# echo No tags to enter
 	end
 
-	# Description
+
+
+	# Enter the description
 	xdotool key --delay 100 Tab "ctrl+a" type --delay 100 "Bank $argv[1] Program $argv[2]"
+
+
 
 	# Tab upward and exit the dialog
 	xdotool key Shift+Tab Shift+Tab
@@ -275,28 +304,62 @@ end
 ########
 # Main
 ########
+$BITWIG # focus the bitwig window
+
+
+# clear existing tracks
+xdotool type o; sleep 0.2 # focus the arranger view
+xdotool type t # focus the track header
+xdotool key "End"; sleep 0.2
+for f in (seq 1 20):
+	xdotool key Delete; sleep 0.1
+end
+
+
 
 # create a track
-$BITWIG
-xdotool type o
 xdotool key "ctrl+t"
+
+
 
 # set the track name 
 xdotool type t
-xdotool key "ctrl+r"; sleep 0.1
-xdotool type --delay 30 "$TRACK_TITLE"
+xdotool key "ctrl+r"; sleep 0.2
+xdotool type --delay 100 "$TRACK_TITLE"
 xdotool key Return
+
+
 
 # open the instrument via the browser
 xdotool type db; sleep 0.1
-xdotool type --delay 30 "Dev56300Emu"
+xdotool type --delay 100 "DSP56300Emu"
 sleep 0.1
 xdotool key --delay 1000 Down Return
 
 sleep 1 # wait for the VST to load
 
+
+
+# Measure the dimensions of the plugin window and recalculate our magic numbers for where .
+set w ($PLUGIN getwindowgeometry --shell | grep WIDTH= | grep -o "[[:digit:]]*")
+set h ($PLUGIN getwindowgeometry --shell | grep HEIGHT= | grep -o "[[:digit:]]*")
+set scale_factor (math $w / $EMU_BASEWH[1]) (math $h / $EMU_BASEWH[2])
+
+set EDITOR_BASEWH $w $h
+set EDITOR_BROWSERXY (math "$EMU_BROWSERXY[1] * $scale_factor[1]") (math "$EMU_BROWSERXY[2] * $scale_factor[2]")
+set EDITOR_TITLEXY (math "$EMU_TITLEXY[1] * $scale_factor[1]") (math "$EMU_TITLEXY[2] * $scale_factor[2]")
+set EDITOR_SETTINGSXY (math "$EMU_SETTINGSXY[1] * $scale_factor[1]") (math "$EMU_SETTINGSXY[2] * $scale_factor[2]")
+set EDITOR_CAT1XY (math "$EMU_CAT1XY[1] * $scale_factor[1]") (math "$EMU_CAT1XY[2] * $scale_factor[2]") (math "$EMU_CAT1XY[3] * $scale_factor[1]") (math "$EMU_CAT1XY[4] * $scale_factor[2]")
+set EDITOR_CAT2XY (math "$EMU_CAT2XY[1] * $scale_factor[1]") (math "$EMU_CAT2XY[2] * $scale_factor[2]") (math "$EMU_CAT2XY[3] * $scale_factor[1]") (math "$EMU_CAT2XY[4] * $scale_factor[2]")
+# echo $EDITOR_BASEWH
+# echo $EDITOR_BROWSERXY
+# echo $EDITOR_TITLEXY
+# echo $EDITOR_SETTINGSXY
+# echo $EDITOR_CAT1XY
+# echo $EDITOR_CAT2XY
+
 # go to the Arp | Settings page
-$PLUGIN mousemove --sync --window %1 $EMU_SETTINGSXY[1] $EMU_SETTINGSXY[2] click 1
+$PLUGIN mousemove --sync --window %1 $EDITOR_SETTINGSXY[1] $EDITOR_SETTINGSXY[2] click 1
 
 
 #
